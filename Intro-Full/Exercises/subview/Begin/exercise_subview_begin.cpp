@@ -161,11 +161,11 @@ int main( int argc, char* argv[] )
 
       // EXERCISE create a subview for row j of matrix A
       // HINT: Use 'auto' to determine the type
-
+      auto slicei0 = Kokkos::subview(A,j,Kokkos::ALL);
       for ( int i = 0; i < M; ++i ) {
         // EXERCISE replace the A(j,:) in A(j,:) * x(:) multiplication with
         //          row_j_of_A * x, using the subview of row j of A
-        temp2 += A( j, i ) * x( i );
+        temp2 += slicei0( i ) * x( i );
       }
 
       update += y( j ) * temp2;

@@ -74,8 +74,8 @@
 void load_state(view_type density, view_type temperature);
 void compute_pressure(view_type pressure, view_type density, view_type temperature);
 void compute_internal_energy(view_type energy, view_type temperature);
-void compute_enthalpy(const int size, double * enthalpy, const double*  energy, 
-		      const double * pressure, const double* density);
+void compute_enthalpy(const int size, view_type enthalpy, view_type  energy, 
+		      view_type pressure, view_type density);
 void check_results(view_type pressure, view_type energy, const double *enthalpy);
 
 int main (int narg, char* arg[]) {
@@ -96,7 +96,7 @@ int main (int narg, char* arg[]) {
       view_type temperature ("temperature",size);
       view_type energy ("energy",size);
    
-      std::vector<double> enthalpy (size, -1);
+      view_type enthalpy("enthalpy",size);
       
       load_state(density, temperature);
 
@@ -115,9 +115,12 @@ int main (int narg, char* arg[]) {
 	pressure.sync<view_type::host_mirror_space> ();
 	energy.sync<view_type::host_mirror_space> ();
 
-	compute_enthalpy(size, enthalpy.data(), energy_view.data(), pressure_view.data(), density_view.data());
+	compute_enthalpy(size, enthalpy, energy, pressure, density);
       }
-      check_results(pressure, energy, enthalpy.data());
+
+      enthalpy.sync_host();
+      auto enthalpy_view = enthalpy.h_view;
+      check_results(pressure, energy, enthalpy_view.data());
 
    }
 
@@ -160,15 +163,25 @@ void compute_internal_energy(view_type energy, view_type temperature) {
    Kokkos::fence();
 }
 
-void compute_enthalpy(const int size, double * enthalpy, const double * energy, const double * pressure, const double * density) {
+void compute_enthalpy(const int size, view_type enthalpy, view_type energy, view_type pressure, view_type density) {
 
   // EXERCISE: convert to run on device
   // with DualViews.  use either a functor or a lambda
+  
+  energy.sync_device();
+  pressure.sync_device();
+  density.sync_device();
 
-   for (int i = 0; i < size; ++i) {
-      enthalpy[i] = energy[i] + pressure[i]/density[i];
-   }
+  auto d_energy = energy.d_view;
+  auto d_pressure = pressure.d_view;
+  auto d_density = density.d_view;
+  auto d_enthalpy = enthalpy.d_view;
 
+  Kokkos::parallel_for(size, KOKKOS_LAMBDA(int i) {
+      d_enthalpy[i] = d_energy[i] + d_pressure[i]/d_density[i];
+  });
+
+  enthalpy.modify_device();
 }
 void check_results(view_type dv_pressure, view_type dv_energy, const double * enthalpy) {
 

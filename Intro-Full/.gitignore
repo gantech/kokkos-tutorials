@@ -1,0 +1,7 @@
+*.o
+*.h
+*.tmp
+*.a
+*.host
+*.cuda
+*log*

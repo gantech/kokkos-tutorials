@@ -106,25 +106,25 @@ int main( int argc, char* argv[] )
 
   // EXERCISE: Replace this for-loop with a parallel_for and initialize the device View
   // Initialize y vector on host.
-  for ( int i = 0; i < N; ++i ) {
+  Kokkos::parallel_for( N, KOKKOS_LAMBDA(int i) {
     y( i ) = 1;
-  }
+  });
 
   // EXERCISE: Replace this for-loop with a parallel_for and initialize the device View
   // Initialize x vector on host.
-  for ( int i = 0; i < M; ++i ) {
+  Kokkos::parallel_for( M, KOKKOS_LAMBDA(int i) {
     x( i ) = 1;
-  }
+  });
 
   // EXERCISE: Replace this for-loop with a parallel_for and initialize the device View
   // EXERCISE: Use an MDRangePolicy with the parallel_for to replace these tightly
   //           nested loops
   // Initialize A matrix on host, note 2D indexing.
-  for ( int j = 0; j < N; ++j ) {
-    for ( int i = 0; i < M; ++i ) {
+  typedef Kokkos::MDRangePolicy<Kokkos::Rank<2,Kokkos::Iterate::Left,Kokkos::Iterate::Right>, Kokkos::Cuda, Kokkos::Schedule<Kokkos::Static>, Kokkos::IndexType<int>, > mdr_policy;
+  Kokkos::parallel_for(mdr_policy
+		       ({0,0},{N,M}), KOKKOS_LAMBDA(int j, int i) {
       A( j, i ) = 1;
-    }
-  }
+  });
 
   // Timer products.
   struct timeval begin, end;
